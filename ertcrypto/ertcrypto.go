@@ -1,4 +1,4 @@
-// Package ertcrypto provides functionality provides cryptographic functionalities for Go enclaves
+// Package ertcrypto provides cryptographic functionalities for Go enclaves
 package ertcrypto
 
 import (

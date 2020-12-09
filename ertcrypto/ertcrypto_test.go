@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"testing"
 
+	_ "github.com/edgelesssys/ertgolib/test/mockert"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -26,7 +27,26 @@ func TestEncryptAndDecrypt(t *testing.T) {
 	assert.EqualValues(testString, plaintext)
 }
 
-func TestSeal(t *testing.T) {
+func TestSealAndUnseal(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
+	testString := "Edgeless"
+
+	ciphertext, err := SealWithUniqueKey([]byte(testString))
+	require.NoError(err)
+	plaintext, err := Unseal(ciphertext)
+	require.NoError(err)
+	assert.EqualValues(testString, plaintext)
+
+	ciphertext, err = SealWithProductKey([]byte(testString))
+	require.NoError(err)
+	plaintext, err = Unseal(ciphertext)
+	require.NoError(err)
+	assert.EqualValues(testString, plaintext)
+}
+
+func TestInternalSeal(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 
