@@ -72,15 +72,18 @@ func SealWithProductKey(plaintext []byte) ([]byte, error) {
 }
 
 // Unseal decrypts data encrypted with the unique or product CPU key with the help of the embedded key info
-func Unseal(ciphertext []byte) (plaintext []byte, err error) {
-	// This might get invalid user data as input, so let's convert an potential upcoming panic to an error the underlying caller can choose how to deal with this situation.
-	defer func() {
-		if panic := recover(); panic != nil {
-			err = fmt.Errorf("%v", panic)
-		}
-	}()
+func Unseal(ciphertext []byte) ([]byte, error) {
+	if len(ciphertext) < 4 {
+		return nil, fmt.Errorf("ciphertext is too short")
+	} 
 
 	keyInfoLength := binary.LittleEndian.Uint32(ciphertext[:4])
+	
+	// We might deal with invalid user data as input, so let's convert an potential upcoming out-of-bounds panic to an error the underlying caller can choose how to deal with this situation.
+	if 4+int(keyInfoLength) > len(ciphertext) {
+		return nil, fmt.Errorf("embedded length information exceeds the given ciphertext")
+	}
+
 	keyInfo := ciphertext[4 : 4+keyInfoLength]
 	ciphertext = ciphertext[4+keyInfoLength:]
 

@@ -46,6 +46,33 @@ func TestSealAndUnseal(t *testing.T) {
 	assert.EqualValues(testString, plaintext)
 }
 
+func TestCorruptedUnseal(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
+	testString := "Edgeless"
+
+	// Check what happens if the given ciphertext is nil
+	_, err := Unseal(nil)
+	assert.Error(err)
+
+	// Check what happens if the given ciphertext is too short
+	_, err = Unseal([]byte{0, 1, 2})
+	assert.Error(err)
+
+	// Check what happens if we go out of bounds
+	ciphertext, err := SealWithUniqueKey([]byte(testString))
+	require.NoError(err)
+
+	// Flip two size bits and watch the length go boom :)
+	ciphertext[0] = 0xff
+	ciphertext[1] = 0xff
+
+	// But hopefully, we catched that!
+	_, err = Unseal(ciphertext)
+	assert.Error(err)
+}
+
 func TestInternalSeal(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
