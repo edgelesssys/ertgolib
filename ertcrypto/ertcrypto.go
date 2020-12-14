@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/edgelesssys/ertgolib/ertenclave"
 )
@@ -71,7 +72,14 @@ func SealWithProductKey(plaintext []byte) ([]byte, error) {
 }
 
 // Unseal decrypts data encrypted with the unique or product CPU key with the help of the embedded key info
-func Unseal(ciphertext []byte) ([]byte, error) {
+func Unseal(ciphertext []byte) (plaintext []byte, err error) {
+	// This might get invalid user data as input, so let's convert an potential upcoming panic to an error the underlying caller can choose how to deal with this situation.
+	defer func() {
+		if panic := recover(); panic != nil {
+			err = fmt.Errorf("%v", panic)
+		}
+	}()
+
 	keyInfoLength := binary.LittleEndian.Uint32(ciphertext[:4])
 	keyInfo := ciphertext[4 : 4+keyInfoLength]
 	ciphertext = ciphertext[4+keyInfoLength:]
