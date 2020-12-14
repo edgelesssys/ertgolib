@@ -52,15 +52,23 @@ func TestCorruptedUnseal(t *testing.T) {
 
 	testString := "Edgeless"
 
-	// Check what happens if the given ciphertext is nil
+	// Check for error if the given ciphertext is nil
 	_, err := Unseal(nil)
 	assert.Error(err)
 
-	// Check what happens if the given ciphertext is too short
+	// Check for error if the given ciphertext is too short
 	_, err = Unseal([]byte{0, 1, 2})
 	assert.Error(err)
 
-	// Check what happens if we go out of bounds
+	// Check for error if the embedded length is 0
+	_, err = Unseal([]byte{0, 0, 0, 0})
+	assert.Error(err)
+
+	// Check for error if the embedded ciphertext is invalid (and specifically, if nonce slicing is not out of bounds)
+	_, err = Unseal([]byte{4, 0, 0, 0, 'i', 'n', 'f', 'o'})
+	assert.Error(err)
+
+	// Check for error if we go out of bounds with an invalid key info length
 	ciphertext, err := SealWithUniqueKey([]byte(testString))
 	require.NoError(err)
 

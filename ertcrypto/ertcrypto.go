@@ -40,6 +40,9 @@ func Decrypt(ciphertext []byte, key []byte) ([]byte, error) {
 	}
 
 	// Split ciphertext into nonce & actual data
+	if len(ciphertext) < aesgcm.NonceSize() {
+		return nil, fmt.Errorf("nonce is too short")
+	}
 	nonce, encryptedData := ciphertext[:aesgcm.NonceSize()], ciphertext[aesgcm.NonceSize():]
 
 	// Decrypt data
@@ -75,13 +78,13 @@ func SealWithProductKey(plaintext []byte) ([]byte, error) {
 func Unseal(ciphertext []byte) ([]byte, error) {
 	if len(ciphertext) < 4 {
 		return nil, fmt.Errorf("ciphertext is too short")
-	} 
+	}
 
 	keyInfoLength := binary.LittleEndian.Uint32(ciphertext[:4])
-	
+
 	// We might deal with invalid user data as input, so let's convert an potential upcoming out-of-bounds panic to an error the underlying caller can choose how to deal with this situation.
-	if 4+int(keyInfoLength) > len(ciphertext) {
-		return nil, fmt.Errorf("embedded length information exceeds the given ciphertext")
+	if keyInfoLength == 0 || 4+int(keyInfoLength) > len(ciphertext) {
+		return nil, fmt.Errorf("embedded length information does not fit the given ciphertext")
 	}
 
 	keyInfo := ciphertext[4 : 4+keyInfoLength]
