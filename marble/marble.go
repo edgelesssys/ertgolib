@@ -8,6 +8,15 @@ import (
 	"os"
 )
 
+// MarbleEnvironmentCertificate contains the name of the environment variable holding a marble-specifc PEM encoded certificate
+const MarbleEnvironmentCertificate = "MARBLE_PREDEFINED_MARBLE_CERTIFICATE"
+
+// MarbleEnvironmentRootCA contains the name of the environment variable holding a PEM encoded root certificate
+const MarbleEnvironmentRootCA = "MARBLE_PREDEFINED_ROOT_CA"
+
+// MarbleEnvironmentPrivateKey contains the name of the environment variable holding a PEM encoded private key belonging to the marble-specific certificate
+const MarbleEnvironmentPrivateKey = "MARBLE_PREDEFINED_PRIVATE_KEY"
+
 // GetServerTLSConfig provides a preconfigured server TLS config for the communication between marbles.
 func GetServerTLSConfig() (*tls.Config, error) {
 	tlsCert, roots, err := generateFromEnv()
@@ -39,7 +48,7 @@ func GetClientTLSConfig() (*tls.Config, error) {
 	return tlsConfig, nil
 }
 
-func mustGetByteEnv(name string) ([]byte, error) {
+func getByteEnv(name string) ([]byte, error) {
 	value := os.Getenv(name)
 	if len(value) == 0 {
 		return nil, fmt.Errorf("environment variable not set: %s", name)
@@ -48,15 +57,15 @@ func mustGetByteEnv(name string) ([]byte, error) {
 }
 
 func generateFromEnv() (tls.Certificate, *x509.CertPool, error) {
-	cert, err := mustGetByteEnv("MARBLE_PREDEFINED_MARBLE_CERT")
+	cert, err := getByteEnv(MarbleEnvironmentCertificate)
 	if err != nil {
 		return tls.Certificate{}, nil, err
 	}
-	rootCA, err := mustGetByteEnv("MARBLE_PREDEFINED_ROOT_CA")
+	rootCA, err := getByteEnv(MarbleEnvironmentRootCA)
 	if err != nil {
 		return tls.Certificate{}, nil, err
 	}
-	privk, err := mustGetByteEnv("MARBLE_PREDEFINED_PRIVATE_KEY")
+	privk, err := getByteEnv(MarbleEnvironmentPrivateKey)
 	if err != nil {
 		return tls.Certificate{}, nil, err
 	}

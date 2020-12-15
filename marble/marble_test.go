@@ -29,19 +29,9 @@ func TestGetServerTLSConfig(t *testing.T) {
 	assert.NotNil(tlsConfig)
 
 	// Check client CA certificate
-	clientCAPool := tlsConfig.ClientCAs
-	clientCAPoolSubjects := clientCAPool.Subjects()
-
-	// x509 cert pools don't allow to extract certificates inside them. How great is that? So we gotta extract the ASN.1 subject and work with it.
-	// This was taken (and slightly modified) from: https://github.com/golang/go/issues/26614#issuecomment-613640345
-	var rdnSequence pkix.RDNSequence
-	_, err = asn1.Unmarshal(clientCAPoolSubjects[0], &rdnSequence)
+	caCommonName, err := getCommonNameFromX509Pool(tlsConfig.ClientCAs)
 	require.NoError(err)
-	var name pkix.Name
-	name.FillFromRDNSequence(&rdnSequence)
-	commonName := name.CommonName
-
-	assert.Equal("Test CA", commonName)
+	assert.Equal("Test CA", caCommonName)
 
 	// Check leaf certificate
 	certificates := tlsConfig.Certificates
@@ -67,19 +57,9 @@ func TestGetClientTLSConfig(t *testing.T) {
 	assert.NotNil(tlsConfig)
 
 	// Check root certificate
-	rootCertPool := tlsConfig.RootCAs
-	rootCertPoolSubjects := rootCertPool.Subjects()
-
-	// x509 cert pools don't allow to extract certificates inside them. How great is that? So we gotta extract the ASN.1 subject and work with it.
-	// This was taken (and slightly modified) from: https://github.com/golang/go/issues/26614#issuecomment-613640345
-	var rdnSequence pkix.RDNSequence
-	_, err = asn1.Unmarshal(rootCertPoolSubjects[0], &rdnSequence)
+	caCommonName, err := getCommonNameFromX509Pool(tlsConfig.RootCAs)
 	require.NoError(err)
-	var name pkix.Name
-	name.FillFromRDNSequence(&rdnSequence)
-	commonName := name.CommonName
-
-	assert.Equal("Test CA", commonName)
+	assert.Equal("Test CA", caCommonName)
 
 	// Check leaf certificate
 	certificates := tlsConfig.Certificates
@@ -95,9 +75,9 @@ func TestGarbageEnviromentVars(t *testing.T) {
 	assert := assert.New(t)
 
 	// Set environment variables
-	os.Setenv("MARBLE_PREDEFINED_ROOT_CA", "this")
-	os.Setenv("MARBLE_PREDEFINED_MARBLE_CERT", "is")
-	os.Setenv("MARBLE_PREDEFINED_PRIVATE_KEY", "some serious garbage")
+	os.Setenv(MarbleEnvironmentRootCA, "this")
+	os.Setenv(MarbleEnvironmentCertificate, "is")
+	os.Setenv(MarbleEnvironmentPrivateKey, "some serious garbage")
 
 	// This should fail
 	tlsConfig, err := GetServerTLSConfig()
@@ -144,25 +124,17 @@ func setupTest(require *require.Assertions) {
 
 	// Create test CA cert
 	certCaRaw, err := x509.CreateCertificate(rand.Reader, &templateCa, &templateCa, &key.PublicKey, key)
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(err)
 
 	certCa, err := x509.ParseCertificate(certCaRaw)
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(err)
 
 	// Create test leaf cert
 	certLeafRaw, err := x509.CreateCertificate(rand.Reader, &templateLeaf, certCa, &key.PublicKey, key)
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(err)
 
 	certLeaf, err := x509.ParseCertificate(certLeafRaw)
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(err)
 
 	// Convert them to PEM
 	caCertPem := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certCa.Raw})
@@ -170,14 +142,30 @@ func setupTest(require *require.Assertions) {
 	privKeyPem := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privKey})
 
 	// Set environment variables
-	os.Setenv("MARBLE_PREDEFINED_ROOT_CA", string(caCertPem))
-	os.Setenv("MARBLE_PREDEFINED_MARBLE_CERT", string(leafCertPem))
-	os.Setenv("MARBLE_PREDEFINED_PRIVATE_KEY", string(privKeyPem))
+	os.Setenv(MarbleEnvironmentRootCA, string(caCertPem))
+	os.Setenv(MarbleEnvironmentCertificate, string(leafCertPem))
+	os.Setenv(MarbleEnvironmentPrivateKey, string(privKeyPem))
 }
 
 func resetEnv() {
 	// Clean up used environment variables, otherwise they stay set!
-	os.Unsetenv("MARBLE_PREDEFINED_ROOT_CA")
-	os.Unsetenv("MARBLE_PREDEFINED_MARBLE_CERT")
-	os.Unsetenv("MARBLE_PREDEFINED_PRIVATE_KEY")
+	os.Unsetenv(MarbleEnvironmentRootCA)
+	os.Unsetenv(MarbleEnvironmentCertificate)
+	os.Unsetenv(MarbleEnvironmentPrivateKey)
+}
+
+// x509 cert pools don't allow to extract certificates inside them. How great is that? So we gotta extract the ASN.1 subject and work with it.
+// This was taken (and slightly modified) from: https://github.com/golang/go/issues/26614#issuecomment-613640345
+func getCommonNameFromX509Pool(pool *x509.CertPool) (string, error) {
+	poolSubjects := pool.Subjects()
+
+	var rdnSequence pkix.RDNSequence
+	_, err := asn1.Unmarshal(poolSubjects[0], &rdnSequence)
+	if err != nil {
+		return "", err
+	}
+
+	var name pkix.Name
+	name.FillFromRDNSequence(&rdnSequence)
+	return name.CommonName, nil
 }
