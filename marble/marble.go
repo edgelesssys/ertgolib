@@ -17,24 +17,8 @@ const MarbleEnvironmentRootCA = "MARBLE_PREDEFINED_ROOT_CA"
 // MarbleEnvironmentPrivateKey contains the name of the environment variable holding a PEM encoded private key belonging to the marble-specific certificate
 const MarbleEnvironmentPrivateKey = "MARBLE_PREDEFINED_PRIVATE_KEY"
 
-// GetServerTLSConfig provides a preconfigured server TLS config for the communication between marbles.
-func GetServerTLSConfig() (*tls.Config, error) {
-	tlsCert, roots, err := generateFromEnv()
-	if err != nil {
-		return nil, err
-	}
-
-	tlsConfig := &tls.Config{
-		ClientCAs:    roots,
-		Certificates: []tls.Certificate{tlsCert},
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-	}
-
-	return tlsConfig, nil
-}
-
-// GetClientTLSConfig provides a preconfigured client TLS config for the communication between marbles.
-func GetClientTLSConfig() (*tls.Config, error) {
+// GetTLSConfig provides a preconfigured TLS config for marbles, using the Marblerun Coordinator as trust anchor
+func GetTLSConfig(verifyClientCerts bool) (*tls.Config, error) {
 	tlsCert, roots, err := generateFromEnv()
 	if err != nil {
 		return nil, err
@@ -43,6 +27,11 @@ func GetClientTLSConfig() (*tls.Config, error) {
 	tlsConfig := &tls.Config{
 		RootCAs:      roots,
 		Certificates: []tls.Certificate{tlsCert},
+	}
+
+	if verifyClientCerts {
+		tlsConfig.ClientCAs = roots
+		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 	}
 
 	return tlsConfig, nil
