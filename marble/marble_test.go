@@ -17,19 +17,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetServerTLSConfig(t *testing.T) {
+func TestGetTLSConfig(t *testing.T) {
 	defer resetEnv()
 	assert := assert.New(t)
 	require := require.New(t)
 
 	// Get server TLS config
 	setupTest(require)
-	tlsConfig, err := GetServerTLSConfig()
+	tlsConfig, err := GetTLSConfig(true)
 	require.NoError(err)
 	assert.NotNil(tlsConfig)
 
+	// Check root certificate
+	caCommonName, err := getCommonNameFromX509Pool(tlsConfig.RootCAs)
+	require.NoError(err)
+	assert.Equal("Test CA", caCommonName)
+
 	// Check client CA certificate
-	caCommonName, err := getCommonNameFromX509Pool(tlsConfig.ClientCAs)
+	caCommonName, err = getCommonNameFromX509Pool(tlsConfig.ClientCAs)
 	require.NoError(err)
 	assert.Equal("Test CA", caCommonName)
 
@@ -43,31 +48,12 @@ func TestGetServerTLSConfig(t *testing.T) {
 
 	// Check ClientAuth value
 	assert.Equal(tls.RequireAndVerifyClientCert, tlsConfig.ClientAuth)
-}
 
-func TestGetClientTLSConfig(t *testing.T) {
-	defer resetEnv()
-	assert := assert.New(t)
-	require := require.New(t)
-
-	// Get client TLS config
-	setupTest(require)
-	tlsConfig, err := GetClientTLSConfig()
+	// Check ClientAuth value when false is used as parameter
+	tlsConfigNoClientAuth, err := GetTLSConfig(false)
 	require.NoError(err)
-	assert.NotNil(tlsConfig)
-
-	// Check root certificate
-	caCommonName, err := getCommonNameFromX509Pool(tlsConfig.RootCAs)
-	require.NoError(err)
-	assert.Equal("Test CA", caCommonName)
-
-	// Check leaf certificate
-	certificates := tlsConfig.Certificates
-	rawCertificate := certificates[0].Certificate[0]
-	x509Cert, err := x509.ParseCertificate(rawCertificate)
-	require.NoError(err)
-	assert.Equal(big.NewInt(1337), x509Cert.SerialNumber)
-	assert.Equal("Test Leaf", x509Cert.Subject.CommonName)
+	assert.Nil(tlsConfigNoClientAuth.ClientCAs)
+	assert.NotEqual(tls.RequireAndVerifyClientCert, tlsConfigNoClientAuth.ClientAuth)
 }
 
 func TestGarbageEnviromentVars(t *testing.T) {
@@ -80,14 +66,14 @@ func TestGarbageEnviromentVars(t *testing.T) {
 	os.Setenv(MarbleEnvironmentPrivateKey, "some serious garbage")
 
 	// This should fail
-	tlsConfig, err := GetServerTLSConfig()
+	tlsConfig, err := GetTLSConfig(true)
 	assert.Error(err)
 	assert.Nil(tlsConfig)
 }
 
 func TestMissingEnvironmentVars(t *testing.T) {
 	assert := assert.New(t)
-	tlsConfig, err := GetClientTLSConfig()
+	tlsConfig, err := GetTLSConfig(false)
 
 	assert.Error(err)
 	assert.Nil(tlsConfig)
