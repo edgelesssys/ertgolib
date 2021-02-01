@@ -56,7 +56,7 @@ func GetRemoteReport(reportData []byte) ([]byte, error) {
 	result := C.GoBytes(unsafe.Pointer(report), C.int(reportSize))
 	_, _, errno = syscall.Syscall(
 		SYS_free_report,
-		uintptr(unsafe.Pointer(&report)),
+		uintptr(unsafe.Pointer(report)),
 		0,
 		0,
 	)
