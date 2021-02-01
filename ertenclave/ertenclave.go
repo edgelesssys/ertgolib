@@ -37,7 +37,7 @@ func GetRemoteReport(reportData []byte) ([]byte, error) {
 		SYS_get_remote_report,
 		uintptr(unsafe.Pointer(&reportData[0])),
 		uintptr(len(reportData)),
-		0,
+		uintptr(unsafe.Pointer(nil)),
 		0,
 		uintptr(unsafe.Pointer(&report)),
 		uintptr(unsafe.Pointer(&reportSize)),
