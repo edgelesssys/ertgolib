@@ -23,9 +23,6 @@ const SYS_free_seal_key = 1004
 const SYS_get_seal_key_by_policy = 1005
 const SYS_result_str = 1006
 
-const SEAL_POLICY_UNIQUE = 1
-const SEAL_POLICY_PRODUCT = 2
-
 // GetRemoteReport gets a report signed by the enclave platform for use in remote attestation.
 //
 // The report shall contain the data given by the reportData parameter.
@@ -104,14 +101,14 @@ func VerifyRemoteReport(reportBytes []byte) (ert.Report, error) {
 //
 // keyInfo can be used to retrieve the same key later, on a newer security version.
 func GetUniqueSealKey() (key, keyInfo []byte, err error) {
-	return getSealKeyByPolicy(SEAL_POLICY_UNIQUE)
+	return getSealKeyByPolicy(C.OE_SEAL_POLICY_UNIQUE)
 }
 
 // GetProductSealKey gets a key derived from the signer and product id of the enclave.
 //
 // keyInfo can be used to retrieve the same key later, on a newer security version.
 func GetProductSealKey() (key, keyInfo []byte, err error) {
-	return getSealKeyByPolicy(SEAL_POLICY_PRODUCT)
+	return getSealKeyByPolicy(C.OE_SEAL_POLICY_PRODUCT)
 }
 
 // GetSealKey gets a key from the enclave platform using existing key information.
