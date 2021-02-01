@@ -1,9 +1,7 @@
 // Package ertenclave provides functionality for Go enclaves like remote attestation and sealing.
 package ertenclave
 
-// #include <stdint.h>
 // #include "structs.h"
-// #cgo LDFLAGS: -Wl,-unresolved-symbols=ignore-in-object-files
 import "C"
 
 import (
@@ -50,12 +48,7 @@ func GetRemoteReport(reportData []byte) ([]byte, error) {
 	}
 
 	result := C.GoBytes(unsafe.Pointer(report), C.int(reportSize))
-	_, _, errno = syscall.Syscall(
-		SYS_free_report,
-		uintptr(unsafe.Pointer(report)),
-		0,
-		0,
-	)
+	syscall.Syscall(SYS_free_report, uintptr(unsafe.Pointer(report)), 0, 0)
 	return result, nil
 }
 
@@ -77,7 +70,7 @@ func VerifyRemoteReport(reportBytes []byte) (ert.Report, error) {
 		uintptr(unsafe.Pointer(&report)),
 	)
 
-	if errno == syscall.ENOSYS {
+	if (errno == syscall.ENOSYS) || (report.identity.attributes&C.OE_REPORT_ATTRIBUTES_REMOTE) != 0 {
 		return ert.Report{}, errors.New("OE_UNSUPPORTED")
 	}
 	if errno != 0 {
@@ -126,7 +119,7 @@ func GetSealKey(keyInfo []byte) ([]byte, error) {
 		0,
 	)
 	if errno == syscall.ENOSYS {
-		return make([]byte, int(keySize)), errors.New("OE_UNSUPPORTED")
+		return make([]byte, 16), nil
 	}
 	if errno != 0 {
 		return nil, fmt.Errorf("Error returned %d", errno)
@@ -136,22 +129,17 @@ func GetSealKey(keyInfo []byte) ([]byte, error) {
 	}
 
 	key := C.GoBytes(unsafe.Pointer(keyBuffer), C.int(keySize))
-	_, _, errno = syscall.Syscall(
-		SYS_free_seal_key,
-		uintptr(unsafe.Pointer(keyBuffer)),
-		0,
-		0,
-	)
+	syscall.Syscall(SYS_free_seal_key, uintptr(unsafe.Pointer(keyBuffer)), 0, 0)
 	return key, nil
 }
 
-func getSealKeyByPolicy(sealPolicy uint32) (key, keyInfo []byte, err error) {
+func getSealKeyByPolicy(sealPolicy uintptr) (key, keyInfo []byte, err error) {
 	var keyBuffer, keyInfoBuffer *C.uint8_t
 	var keySize, keyInfoSize C.size_t
 
 	res, _, errno := syscall.Syscall6(
 		SYS_get_seal_key_by_policy,
-		uintptr(sealPolicy),
+		sealPolicy,
 		uintptr(unsafe.Pointer(&keyBuffer)),
 		uintptr(unsafe.Pointer(&keySize)),
 		uintptr(unsafe.Pointer(&keyInfoBuffer)),
@@ -159,7 +147,7 @@ func getSealKeyByPolicy(sealPolicy uint32) (key, keyInfo []byte, err error) {
 		0,
 	)
 	if errno == syscall.ENOSYS {
-		return nil, nil, errors.New("OE_UNSUPPORTED")
+		return make([]byte, 16), []byte("info"), nil
 	}
 	if errno != 0 {
 		return nil, nil, fmt.Errorf("Error returned %d", err)
@@ -170,7 +158,7 @@ func getSealKeyByPolicy(sealPolicy uint32) (key, keyInfo []byte, err error) {
 
 	key = C.GoBytes(unsafe.Pointer(keyBuffer), C.int(keySize))
 	keyInfo = C.GoBytes(unsafe.Pointer(keyInfoBuffer), C.int(keyInfoSize))
-	_, _, errno = syscall.Syscall(
+	syscall.Syscall(
 		SYS_free_seal_key,
 		uintptr(unsafe.Pointer(keyBuffer)),
 		uintptr(unsafe.Pointer(keyInfoBuffer)),

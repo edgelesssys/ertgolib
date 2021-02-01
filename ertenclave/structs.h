@@ -1,34 +1,17 @@
+// Copyright (c) Open Enclave SDK contributors.
+// Licensed under the MIT License.
+
 #define OE_UNIQUE_ID_SIZE 32
 #define OE_SIGNER_ID_SIZE 32
 #define OE_PRODUCT_ID_SIZE 16
 #define OE_REPORT_ATTRIBUTES_DEBUG 1
 #define OE_SEAL_POLICY_UNIQUE 1
 #define OE_SEAL_POLICY_PRODUCT 2
+#define OE_REPORT_ATTRIBUTES_REMOTE 0x0000000000000002ULL
 
-typedef enum _oe_enclave_type
-{
-    /**
-     * OE_ENCLAVE_TYPE_AUTO will pick the type
-     * based on the target platform that is being built, such that x64 binaries
-     * will use SGX.
-     */
-    OE_ENCLAVE_TYPE_AUTO = 1,
-    /**
-     * OE_ENCLAVE_TYPE_SGX will force the platform to use SGX, but any platform
-     * other than x64 will not support this and will generate errors.
-     */
-    OE_ENCLAVE_TYPE_SGX = 2,
-    /**
-     * OE_ENCLAVE_TYPE_OPTEE will force the platform to use OP-TEE, but any
-     * platform other than one that implements ARM TrustZone with OP-TEE as its
-     * secure kernel will not support this and will generate errors.
-     */
-    OE_ENCLAVE_TYPE_OPTEE = 3,
-    /**
-     * Unused
-     */
-    __OE_ENCLAVE_TYPE_MAX = 0xffffffff,
-} oe_enclave_type_t;
+#include <stdint.h>
+
+typedef int oe_enclave_type_t;
 
 typedef struct _oe_identity
 {
