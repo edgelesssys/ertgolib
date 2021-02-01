@@ -93,7 +93,7 @@ func VerifyRemoteReport(reportBytes []byte) (ert.Report, error) {
 	return ert.Report{
 		Data:            C.GoBytes(unsafe.Pointer(report.report_data), C.int(report.report_data_size)),
 		SecurityVersion: uint(report.identity.security_version),
-		Debug:           (report.identity.attributes & C.REPORT_ATTRIBUTES_DEBUG) != 0,
+		Debug:           (report.identity.attributes & C.OE_REPORT_ATTRIBUTES_DEBUG) != 0,
 		UniqueID:        C.GoBytes(unsafe.Pointer(&report.identity.unique_id[0]), C.OE_UNIQUE_ID_SIZE),
 		SignerID:        C.GoBytes(unsafe.Pointer(&report.identity.signer_id[0]), C.OE_SIGNER_ID_SIZE),
 		ProductID:       C.GoBytes(unsafe.Pointer(&report.identity.product_id[0]), C.OE_PRODUCT_ID_SIZE),
