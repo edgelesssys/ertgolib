@@ -11,6 +11,24 @@ import (
 	"github.com/edgelesssys/ertgolib/ertenclave"
 )
 
+var sealer interface {
+	GetUniqueSealKey() (key, keyInfo []byte, err error)
+	GetProductSealKey() (key, keyInfo []byte, err error)
+	GetSealKey(keyInfo []byte) ([]byte, error)
+} = enclave{}
+
+type enclave struct{}
+
+func (enclave) GetUniqueSealKey() (key, keyInfo []byte, err error) {
+	return ertenclave.GetUniqueSealKey()
+}
+func (enclave) GetProductSealKey() (key, keyInfo []byte, err error) {
+	return ertenclave.GetProductSealKey()
+}
+func (enclave) GetSealKey(keyInfo []byte) ([]byte, error) {
+	return ertenclave.GetSealKey(keyInfo)
+}
+
 // Encrypt encrypts a given plaintext with a supplied key using AES-GCM
 func Encrypt(plaintext []byte, key []byte) ([]byte, error) {
 	// Get cipher object with key
@@ -56,7 +74,7 @@ func Decrypt(ciphertext []byte, key []byte) ([]byte, error) {
 
 // SealWithUniqueKey encrypts a given plaintext with a key derived from a measurement of the enclave.
 func SealWithUniqueKey(plaintext []byte) ([]byte, error) {
-	sealKey, keyInfo, err := ertenclave.GetUniqueSealKey()
+	sealKey, keyInfo, err := sealer.GetUniqueSealKey()
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +84,7 @@ func SealWithUniqueKey(plaintext []byte) ([]byte, error) {
 
 // SealWithProductKey encrypts a given plaintext with the a key from the signer and product id of the enclave.
 func SealWithProductKey(plaintext []byte) ([]byte, error) {
-	sealKey, keyInfo, err := ertenclave.GetProductSealKey()
+	sealKey, keyInfo, err := sealer.GetProductSealKey()
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +108,7 @@ func Unseal(ciphertext []byte) ([]byte, error) {
 	keyInfo := ciphertext[4 : 4+keyInfoLength]
 	ciphertext = ciphertext[4+keyInfoLength:]
 
-	sealKey, err := ertenclave.GetSealKey(keyInfo)
+	sealKey, err := sealer.GetSealKey(keyInfo)
 	if err != nil {
 		return nil, err
 	}
