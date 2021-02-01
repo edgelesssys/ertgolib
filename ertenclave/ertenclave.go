@@ -25,7 +25,6 @@ const SYS_result_str = 1006
 
 const SEAL_POLICY_UNIQUE = 1
 const SEAL_POLICY_PRODUCT = 2
-const REPORT_ATTRIBUTES_DEBUG = 1
 
 // GetRemoteReport gets a report signed by the enclave platform for use in remote attestation.
 //
@@ -56,7 +55,7 @@ func GetRemoteReport(reportData []byte) ([]byte, error) {
 	result := C.GoBytes(unsafe.Pointer(report), C.int(reportSize))
 	_, _, errno = syscall.Syscall(
 		SYS_free_report,
-		uintptr(unsafe.Pointer(&report)),
+		uintptr(unsafe.Pointer(report)),
 		0,
 		0,
 	)
@@ -94,7 +93,7 @@ func VerifyRemoteReport(reportBytes []byte) (ert.Report, error) {
 	return ert.Report{
 		Data:            C.GoBytes(unsafe.Pointer(report.report_data), C.int(report.report_data_size)),
 		SecurityVersion: uint(report.identity.security_version),
-		Debug:           (report.identity.attributes & REPORT_ATTRIBUTES_DEBUG) != 0,
+		Debug:           (report.identity.attributes & C.REPORT_ATTRIBUTES_DEBUG) != 0,
 		UniqueID:        C.GoBytes(unsafe.Pointer(&report.identity.unique_id[0]), C.OE_UNIQUE_ID_SIZE),
 		SignerID:        C.GoBytes(unsafe.Pointer(&report.identity.signer_id[0]), C.OE_SIGNER_ID_SIZE),
 		ProductID:       C.GoBytes(unsafe.Pointer(&report.identity.product_id[0]), C.OE_PRODUCT_ID_SIZE),

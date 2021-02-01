@@ -1,6 +1,7 @@
 #define OE_UNIQUE_ID_SIZE 32
 #define OE_SIGNER_ID_SIZE 32
 #define OE_PRODUCT_ID_SIZE 16
+#define OE_REPORT_ATTRIBUTES_DEBUG 1
 
 typedef enum _oe_enclave_type
 {
