@@ -6,7 +6,6 @@ import "C"
 
 import (
 	"errors"
-	"fmt"
 	"syscall"
 	"unsafe"
 
@@ -37,14 +36,8 @@ func GetRemoteReport(reportData []byte) ([]byte, error) {
 		uintptr(unsafe.Pointer(&report)),
 		uintptr(unsafe.Pointer(&reportSize)),
 	)
-	if errno == syscall.ENOSYS {
-		return nil, errors.New("OE_UNSUPPORTED")
-	}
-	if errno != 0 {
-		return nil, fmt.Errorf("Error returned %d", errno)
-	}
-	if res != 0 {
-		return nil, oeError(res)
+	if err := oeError(errno, res); err != nil {
+		return nil, err
 	}
 
 	result := C.GoBytes(unsafe.Pointer(report), C.int(reportSize))
@@ -69,15 +62,12 @@ func VerifyRemoteReport(reportBytes []byte) (ert.Report, error) {
 		uintptr(len(reportBytes)),
 		uintptr(unsafe.Pointer(&report)),
 	)
+	if err := oeError(errno, res); err != nil {
+		return ert.Report{}, err
+	}
 
-	if (errno == syscall.ENOSYS) || (report.identity.attributes&C.OE_REPORT_ATTRIBUTES_REMOTE) != 0 {
+	if (report.identity.attributes & C.OE_REPORT_ATTRIBUTES_REMOTE) == 0 {
 		return ert.Report{}, errors.New("OE_UNSUPPORTED")
-	}
-	if errno != 0 {
-		return ert.Report{}, fmt.Errorf("Error returned %d", errno)
-	}
-	if res != 0 {
-		return ert.Report{}, oeError(res)
 	}
 
 	return ert.Report{
@@ -121,11 +111,8 @@ func GetSealKey(keyInfo []byte) ([]byte, error) {
 	if errno == syscall.ENOSYS {
 		return make([]byte, 16), nil
 	}
-	if errno != 0 {
-		return nil, fmt.Errorf("Error returned %d", errno)
-	}
-	if res != 0 {
-		return nil, oeError(res)
+	if err := oeError(errno, res); err != nil {
+		return nil, err
 	}
 
 	key := C.GoBytes(unsafe.Pointer(keyBuffer), C.int(keySize))
@@ -149,11 +136,8 @@ func getSealKeyByPolicy(sealPolicy uintptr) (key, keyInfo []byte, err error) {
 	if errno == syscall.ENOSYS {
 		return make([]byte, 16), []byte("info"), nil
 	}
-	if errno != 0 {
-		return nil, nil, fmt.Errorf("Error returned %d", err)
-	}
-	if res != 0 {
-		return nil, nil, oeError(res)
+	if err := oeError(errno, res); err != nil {
+		return nil, nil, err
 	}
 
 	key = C.GoBytes(unsafe.Pointer(keyBuffer), C.int(keySize))
@@ -167,7 +151,17 @@ func getSealKeyByPolicy(sealPolicy uintptr) (key, keyInfo []byte, err error) {
 	return
 }
 
-func oeError(res uintptr) error {
+func oeError(errno syscall.Errno, res uintptr) error {
+	if errno == syscall.ENOSYS {
+		return errors.New("OE_UNSUPPORTED")
+	}
+	if errno != 0 {
+		return errno
+	}
+	if res == 0 {
+		return nil
+	}
+
 	resStr, _, errno := syscall.Syscall(SYS_result_str, res, 0, 0)
 	if errno != 0 {
 		return errno
