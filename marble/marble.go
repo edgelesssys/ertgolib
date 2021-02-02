@@ -8,11 +8,11 @@ import (
 	"os"
 )
 
-// MarbleEnvironmentCertificate contains the name of the environment variable holding a marble-specifc PEM encoded certificate
-const MarbleEnvironmentCertificate = "MARBLE_PREDEFINED_MARBLE_CERTIFICATE"
+// MarbleEnvironmentCertificateChain contains the name of the environment variable holding a marble-specifc PEM encoded certificate
+const MarbleEnvironmentCertificateChain = "MARBLE_PREDEFINED_MARBLE_CERTIFICATE_CHAIN"
 
-// MarbleEnvironmentRootCA contains the name of the environment variable holding a PEM encoded root certificate
-const MarbleEnvironmentRootCA = "MARBLE_PREDEFINED_ROOT_CA"
+// MarbleEnvironmentIntermediateCA contains the name of the environment variable holding a PEM encoded root certificate
+const MarbleEnvironmentIntermediateCA = "MARBLE_PREDEFINED_INTERMEDIATE_CA"
 
 // MarbleEnvironmentPrivateKey contains the name of the environment variable holding a PEM encoded private key belonging to the marble-specific certificate
 const MarbleEnvironmentPrivateKey = "MARBLE_PREDEFINED_PRIVATE_KEY"
@@ -46,25 +46,25 @@ func getByteEnv(name string) ([]byte, error) {
 }
 
 func generateFromEnv() (tls.Certificate, *x509.CertPool, error) {
-	cert, err := getByteEnv(MarbleEnvironmentCertificate)
+	certChain, err := getByteEnv(MarbleEnvironmentCertificateChain)
 	if err != nil {
 		return tls.Certificate{}, nil, err
 	}
-	rootCA, err := getByteEnv(MarbleEnvironmentRootCA)
+	intermediateCA, err := getByteEnv(MarbleEnvironmentIntermediateCA)
 	if err != nil {
 		return tls.Certificate{}, nil, err
 	}
-	privk, err := getByteEnv(MarbleEnvironmentPrivateKey)
+	leafPrivk, err := getByteEnv(MarbleEnvironmentPrivateKey)
 	if err != nil {
 		return tls.Certificate{}, nil, err
 	}
 
 	roots := x509.NewCertPool()
-	if !roots.AppendCertsFromPEM(rootCA) {
-		return tls.Certificate{}, nil, fmt.Errorf("cannot append rootCa to CertPool")
+	if !roots.AppendCertsFromPEM(intermediateCA) {
+		return tls.Certificate{}, nil, fmt.Errorf("cannot append intermediateCA as rootCA to CertPool")
 	}
 
-	tlsCert, err := tls.X509KeyPair(cert, privk)
+	tlsCert, err := tls.X509KeyPair(certChain, leafPrivk)
 	if err != nil {
 		return tls.Certificate{}, nil, fmt.Errorf("cannot create TLS cert: %v", err)
 	}

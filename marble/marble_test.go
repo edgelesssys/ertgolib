@@ -61,8 +61,8 @@ func TestGarbageEnviromentVars(t *testing.T) {
 	assert := assert.New(t)
 
 	// Set environment variables
-	os.Setenv(MarbleEnvironmentRootCA, "this")
-	os.Setenv(MarbleEnvironmentCertificate, "is")
+	os.Setenv(MarbleEnvironmentIntermediateCA, "this")
+	os.Setenv(MarbleEnvironmentCertificateChain, "is")
 	os.Setenv(MarbleEnvironmentPrivateKey, "some serious garbage")
 
 	// This should fail
@@ -128,15 +128,15 @@ func setupTest(require *require.Assertions) {
 	privKeyPem := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privKey})
 
 	// Set environment variables
-	os.Setenv(MarbleEnvironmentRootCA, string(caCertPem))
-	os.Setenv(MarbleEnvironmentCertificate, string(leafCertPem))
+	os.Setenv(MarbleEnvironmentIntermediateCA, string(caCertPem))
+	os.Setenv(MarbleEnvironmentCertificateChain, string(leafCertPem))
 	os.Setenv(MarbleEnvironmentPrivateKey, string(privKeyPem))
 }
 
 func resetEnv() {
 	// Clean up used environment variables, otherwise they stay set!
-	os.Unsetenv(MarbleEnvironmentRootCA)
-	os.Unsetenv(MarbleEnvironmentCertificate)
+	os.Unsetenv(MarbleEnvironmentIntermediateCA)
+	os.Unsetenv(MarbleEnvironmentCertificateChain)
 	os.Unsetenv(MarbleEnvironmentPrivateKey)
 }
 
