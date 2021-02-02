@@ -168,11 +168,9 @@ func getSealKeyByPolicy(sealPolicy uintptr) (key, keyInfo []byte, err error) {
 }
 
 func oeError(res uintptr) error {
-	resStr, _, _ := syscall.Syscall(
-		SYS_result_str,
-		res,
-		0,
-		0,
-	)
-	return errors.New(*(*string)(unsafe.Pointer(resStr)))
+	resStr, _, errno := syscall.Syscall(SYS_result_str, res, 0, 0)
+	if errno != 0 {
+		return errno
+	}
+	return errors.New(C.GoString((*C.char)(unsafe.Pointer(resStr))))
 }
